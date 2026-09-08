@@ -1,0 +1,289 @@
+This markdown generates the longitudinal donuts (Fig 4J).
+Categories: common, stubborn good, stubborn bad, flakey.
+
+Load packages.
+```{r}
+library(ggplot2)
+library(dplyr)
+library(ggpubr)
+```
+
+Load data.
+```{r}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_10")
+
+load("dLN_DEG_list.rda")
+load("PBMC_DEG_list.rda")
+load("spleen_DEG_list.rda")
+```
+
+Write a function for the gene type analysis. Its output is the donut plot.
+```{r}
+plot_genetypes <- function(DEG_list, good_in, bad_in) {
+
+temp1 <- DEG_list[[good_in]] # dLN, D3, male, good vax
+temp2 <- DEG_list[[bad_in]] # dLN, D3, male, bad vax
+  
+temp1_up <- temp1[temp1$LFC_sh > 0,]
+temp1_down <- temp1[temp1$LFC_sh < 0,]
+temp2_up <- temp2[temp2$LFC_sh > 0,]
+temp2_down <- temp2[temp2$LFC_sh < 0,]  
+
+# common up
+gene_of_cluster_gr1 <- paste(temp1_up$genes, temp1_up$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_up$genes, temp2_up$cluster, sep = "/")
+common_up <- intersect(gene_of_cluster_gr1, gene_of_cluster_gr2)
+
+# common down
+gene_of_cluster_gr1 <- paste(temp1_down$genes, temp1_down$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_down$genes, temp2_down$cluster, sep = "/")
+common_down <- intersect(gene_of_cluster_gr1, gene_of_cluster_gr2)
+
+# Stoic: good-up, good-down, bad-up, bad-down
+interSection_up <- intersect(unique(temp1_up$genes), unique(temp2_up$genes))
+stoic_good_up <- setdiff(unique(temp1_up$genes), interSection_up)
+stoic_bad_up <- setdiff(unique(temp2_up$genes), interSection_up)
+
+if (length(stoic_good_up) > 0) {
+  stoic_good_up_all <- c()
+  for (p in 1:length(stoic_good_up)) {
+    for (r in 1:dim(temp1_up)[1]) {
+      if (stoic_good_up[p] == temp1_up$genes[r]) {
+        stoic_good_up_all <- c(stoic_good_up_all, paste(temp1_up$genes[r], temp1_up$cluster[r], sep = "/"))
+      }
+    }
+  }
+} else {
+  stoic_good_up_all <- c()
+}
+
+if (length(stoic_bad_up) > 0) {
+  stoic_bad_up_all <- c()
+  for (p in 1:length(stoic_bad_up)) {
+    for (r in 1:dim(temp2_up)[1]) {
+      if (stoic_bad_up[p] == temp2_up$genes[r]) {
+        stoic_bad_up_all <- c(stoic_bad_up_all, paste(temp2_up$genes[r], temp2_up$cluster[r], sep = "/"))
+      }
+    }
+  }
+} else {
+  stoic_bad_up_all <- c()
+}
+
+
+interSection_down <- intersect(unique(temp1_down$genes), unique(temp2_down$genes))
+stoic_good_down <- setdiff(unique(temp1_down$genes), interSection_down)
+stoic_bad_down <- setdiff(unique(temp2_down$genes), interSection_down)
+
+if (length(stoic_good_down) > 0) {
+  stoic_good_down_all <- c()
+  for (p in 1:length(stoic_good_down)) {
+    for (r in 1:dim(temp1_down)[1]) {
+      if (stoic_good_down[p] == temp1_down$genes[r]) {
+        stoic_good_down_all <- c(stoic_good_down_all, paste(temp1_down$genes[r], temp1_down$cluster[r], sep = "/"))
+      }
+    }
+  }
+} else {
+  stoic_good_down_all <- c()
+}
+
+if (length(stoic_bad_down) > 0) {
+  stoic_bad_down_all <- c()
+  for (p in 1:length(stoic_bad_down)) {
+    for (r in 1:dim(temp2_down)[1]) {
+      if (stoic_bad_down[p] == temp2_down$genes[r]) {
+        stoic_bad_down_all <- c(stoic_bad_down_all, paste(temp2_down$genes[r], temp2_down$cluster[r], sep = "/"))
+      }
+    }
+  }
+} else {
+  stoic_bad_down_all <- c()
+}
+
+
+# Flakey up, Flakey down
+if (length(common_up) > 0) {
+  common_up_gene <- c()
+  for (q in 1:length(common_up)) {D <- strsplit(common_up[q], split = "/"); common_up_gene <- c(common_up_gene, D[[1]][1])}
+} else {
+  common_up_gene <- c()
+}
+
+flakey_up <- setdiff(interSection_up, common_up_gene)
+
+if (length(flakey_up) > 0) {
+  flakey_good_up_all <- c()
+  for (p in 1:length(flakey_up)) {
+    for (r in 1:dim(temp1_up)[1]) {
+      if (flakey_up[p] == temp1_up$genes[r]) {
+        flakey_good_up_all <- c(flakey_good_up_all, paste(temp1_up$genes[r], temp1_up$cluster[r], sep = "/"))
+      }
+    }
+  }
+} else {
+  flakey_good_up_all <- c()
+}
+
+if (length(flakey_up) > 0) {
+  flakey_bad_up_all <- c()
+  for (p in 1:length(flakey_up)) {
+    for (r in 1:dim(temp2_up)[1]) {
+      if (flakey_up[p] == temp2_up$genes[r]) {
+        flakey_bad_up_all <- c(flakey_bad_up_all, paste(temp2_up$genes[r], temp2_up$cluster[r], sep = "/"))
+      }
+    }
+  }
+} else {
+  flakey_bad_up_all <- c()
+}
+
+if (length(common_down) > 0) {
+  common_down_gene <- c()
+  for (q in 1:length(common_down)) {D <- strsplit(common_down[q], split = "/"); common_down_gene <- c(common_down_gene, D[[1]][1])}
+} else {
+  common_down_gene <- c()
+}
+
+flakey_down <- setdiff(interSection_down, common_down_gene)
+
+if (length(flakey_down) > 0) {
+  flakey_good_down_all <- c()
+  for (p in 1:length(flakey_down)) {
+    for (r in 1:dim(temp1_down)[1]) {
+      if (flakey_down[p] == temp1_down$genes[r]) {
+        flakey_good_down_all <- c(flakey_good_down_all, paste(temp1_down$genes[r], temp1_down$cluster[r], sep = "/"))
+      }
+    }
+  }
+} else {
+  flakey_good_down_all <- c()
+}
+
+if (length(flakey_down) > 0) {
+  flakey_bad_down_all <- c()
+  for (p in 1:length(flakey_down)) {
+    for (r in 1:dim(temp2_down)[1]) {
+      if (flakey_down[p] == temp2_down$genes[r]) {
+        flakey_bad_down_all <- c(flakey_bad_down_all, paste(temp2_down$genes[r], temp2_down$cluster[r], sep = "/"))
+      }
+    }
+  }
+} else {
+  flakey_bad_down_all <- c()
+}
+
+
+# Get the flakey from the commons
+gene_of_cluster_gr1 <- paste(temp1_up$genes, temp1_up$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_up$genes, temp2_up$cluster, sep = "/")
+
+common_stoic_flakey_good_up <- c(common_up, stoic_good_up_all, flakey_good_up_all)
+
+common_stoic_flakey_bad_up <- c(common_up, stoic_bad_up_all, flakey_bad_up_all)
+
+flakey_good_up_rest <- setdiff(gene_of_cluster_gr1, common_stoic_flakey_good_up)
+
+flakey_bad_up_rest <- setdiff(gene_of_cluster_gr2, common_stoic_flakey_bad_up)
+
+gene_of_cluster_gr1 <- paste(temp1_down$genes, temp1_down$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_down$genes, temp2_down$cluster, sep = "/")
+
+common_stoic_flakey_good_down <- c(common_down, stoic_good_down_all, flakey_good_down_all)
+
+common_stoic_flakey_bad_down <- c(common_down, stoic_bad_down_all, flakey_bad_down_all)
+
+flakey_good_down_rest <- setdiff(gene_of_cluster_gr1, common_stoic_flakey_good_down)
+
+flakey_bad_down_rest <- setdiff(gene_of_cluster_gr2, common_stoic_flakey_bad_down)
+
+# Put the rest in all
+flakey_good_up_all <- c(flakey_good_up_all, flakey_good_up_rest)
+
+flakey_bad_up_all <- c(flakey_bad_up_all, flakey_bad_up_rest)
+
+flakey_good_down_all  <- c(flakey_good_down_all, flakey_good_down_rest)
+
+flakey_bad_down_all <- c(flakey_bad_down_all, flakey_bad_down_rest)
+
+common <- 2*(length(common_up) + length(common_down))
+stubborn_good <- length(stoic_good_up_all) + length(stoic_good_down_all)
+stubborn_bad <- length(stoic_bad_up_all) + length(stoic_bad_down_all)
+flakey <- length(flakey_good_up_all) + length(flakey_good_down_all) + length(flakey_bad_up_all) + length(flakey_bad_down_all)
+
+dframe1 <- data.frame(genetype <- c("common", "stubborn_good", "stubborn_bad", "flakey"), 
+                      freq <- c(common, stubborn_good, stubborn_bad, flakey))
+
+hsize <- 1.5
+
+dframe1 <- dframe1 %>% 
+  mutate(x = hsize)
+
+fig <- ggplot(dframe1, aes(x = hsize, y = freq, fill = genetype)) +
+  geom_col() +
+  coord_polar(theta = "y") +
+  xlim(c(0.2, hsize + 0.5)) +
+  theme(panel.background = element_rect(fill = "white"),
+  panel.grid = element_blank(),
+  axis.title = element_blank(),
+  axis.ticks = element_blank(),
+  axis.text = element_blank(),
+  legend.position = "none",
+  plot.margin = unit(c(-0.8,-0.3,-0.6,-0.2), "lines"))
+
+return(fig)
+}
+```
+Gene type catalogue.
+```{r}
+patt1 <- c("D1_M", "D1_M", "D1_F", "D1_F",
+          "D3_M", "D3_M", "D3_F", "D3_F",
+          "D5_M", "D5_M", "D5_F", "D5_F",
+          "D7_M", "D7_M", "D7_F", "D7_F",
+          "D30_M", "D30_M", "D30_F", "D30_F")
+
+patt2 <- c("dLN", "PBMC", "spleen")
+
+patt3 <- c("D1_M", "D1_F",
+          "D3_M", "D3_F",
+          "D5_M", "D5_F",
+          "D7_M", "D7_F",
+          "D30_M", "D30_F")
+donut_list <- list()
+n1 <- 1
+
+for (i in 1:length(patt2)) {
+  if (patt2[i] == "dLN") {
+    for (j in 1:length(patt3)) {
+      index <- which(patt1==patt3[j])
+      good_in <- index[1]
+      bad_in <- index[2]
+      donut_list[[n1]] <- plot_genetypes(dLN_DEG_list, good_in, bad_in)
+      n1 <- n1 + 1 
+    }
+  }
+  
+  if (patt2[i] == "PBMC") {
+    for (j in 1:length(patt3)) {
+      index <- which(patt1==patt3[j])
+      good_in <- index[1]
+      bad_in <- index[2]
+      donut_list[[n1]] <- plot_genetypes(PBMC_DEG_list, good_in, bad_in)
+      n1 <- n1 + 1 
+    }
+  }
+  
+  if (patt2[i] == "spleen") {
+    for (j in 1:length(patt3)) {
+      index <- which(patt1==patt3[j])
+      good_in <- index[1]
+      bad_in <- index[2]
+      donut_list[[n1]] <- plot_genetypes(spleen_DEG_list, good_in, bad_in)
+      n1 <- n1 + 1 
+    }
+  }
+}
+
+# Plot
+fig1 <- ggarrange(plotlist = donut_list, ncol = 10, nrow = 3)
+```

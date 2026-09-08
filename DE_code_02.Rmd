@@ -1,0 +1,231 @@
+This markdown calls the saved aggregated Seurat objects from DE_code_01.Rmd.
+It also uses the whole data Seurat objects from DE_code_01 containing the biological replicate level metadata.
+Then it performs the DESeq analysis on them.
+It saves the Benjamini-Hochberg corrected outputs.
+
+Load packages.
+```{r}
+library(Seurat)
+library(SeuratDisk)
+library(DESeq2)
+library(openxlsx)
+```
+First read the excel files with the details of clusters and cells.
+```{r}
+dLN_gist <- read.xlsx("C:/Users/budha/Documents/R/YF_complete/YF_report_04/ver3/supplementary_file_03.xlsx", sheet = "dLN")
+spleen_gist <- read.xlsx("C:/Users/budha/Documents/R/YF_complete/YF_report_04/ver3/supplementary_file_03.xlsx", sheet = "spleen")
+PBMC_gist <- read.xlsx("C:/Users/budha/Documents/R/YF_complete/YF_report_04/ver3/supplementary_file_03.xlsx", sheet = "PBMC")
+ndLN_gist <- read.xlsx("C:/Users/budha/Documents/R/YF_complete/YF_report_04/ver3/supplementary_file_03.xlsx", sheet = "ndLN")
+```
+
+Load dLN aggregated object. dLN_data with the replicate metadata should be in the environment already.
+```{r warning=FALSE, message=FALSE}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_10")
+dLN_aggregate <- LoadH5Seurat("dLN_aggregate.h5seurat")
+```
+
+Load spleen aggregated object. spleen_data with the replicate metadata should be in the environment already.
+```{r warning=FALSE, message=FALSE}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_10")
+spleen_aggregate <- LoadH5Seurat("spleen_aggregate.h5seurat")
+```
+
+Load PBMC aggregated object. PBMC_data with the replicate metadata should be in the environment already.
+```{r warning=FALSE, message=FALSE}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_10")
+PBMC_aggregate <- LoadH5Seurat("PBMC_aggregate.h5seurat")
+```
+
+Load ndLN aggregated object. ndLN_data with the replicate metadata should be in the environment already.
+```{r warning=FALSE, message=FALSE}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_10")
+ndLN_aggregate <- LoadH5Seurat("ndLN_aggregate.h5seurat")
+```
+
+Execute DESeq. 
+Keep the Benjamini-Hochberg corrcted outputs.
+```{r warning=FALSE, message=FALSE}
+DESEq_wrap <- function(testtemp1, cellgist, whole4SCT) {
+# Get the data in a temporary variable
+#testtemp1 <- dLN_aggregate
+#cellgist <- dLN_gist
+#whole4SCT <- dLN_data
+
+# Remove naive
+testtemp1 <- subset(testtemp1, subset = time != "Dneg")
+
+# Keep the genes in the SCT in the RNA, remove the rest
+counts_RNA <- GetAssayData(testtemp1, assay = "RNA")
+rownames_SCT <- rownames(GetAssayData(whole4SCT, assay = "SCT"))
+counts_RNA <- counts_RNA[(which(rownames(counts_RNA) %in% rownames_SCT)),]
+testtemp1 <- subset(testtemp1, features = rownames(counts_RNA))
+
+# Rename the vipex 
+vax <- testtemp1@meta.data$vax 
+for (i in 1:length(vax)) {
+  if (vax[i] == "Vipex") {
+    vax[i] <- "vipex"
+  }
+}
+
+testtemp1@meta.data$vax <- vax
+# Rename the vipex timepoints
+time <- testtemp1@meta.data$time
+for (j in 1:length(time)) {
+  if (time[j] == "D0") {
+    time[j] <- "D"
+  }
+  if (time[j] == "Dint") {
+    time[j] <- "D"
+  }
+}
+
+testtemp1@meta.data$time <- time
+
+testtemp1@meta.data$time_sex_vax_clust <- paste(testtemp1@meta.data$time, testtemp1@meta.data$sex, 
+                                            testtemp1@meta.data$vax, testtemp1@meta.data$cluster, sep = "_")
+
+# modify gist
+cellgist <- cellgist[-which(cellgist$Vax=="naïve"),]
+row.names(cellgist) <- NULL
+
+m <- 1
+DEG_list_bonferroni <- list()
+DEG_list_benjamini <- list()
+#i <- 1
+for (i in which(!(cellgist$Time %in% c("D0", "Dint")))) { # time-sex-vax 
+  print(i)
+  # first check if it is a male entry or a female entry
+  if (cellgist$Sex[i] == "M") {
+    vipex_entry <-which(cellgist$Time %in% c("D0", "Dint"))[which(cellgist$Sex[which(cellgist$Time %in% c("D0", "Dint"))]=="M")]
+    SEX <- "male"
+  }
+  if (cellgist$Sex[i] == "F") {
+    vipex_entry <-which(cellgist$Time %in% c("D0", "Dint"))[which(cellgist$Sex[which(cellgist$Time %in% c("D0", "Dint"))]=="F")]
+    SEX <- "female"
+  }
+  #j <- 1
+  for (j in 1:45) { # cluster #45
+    
+    # First check if the vipex has more than 50 cells
+    if (sum(cellgist[vipex_entry,j+3]) < 50) {
+      next
+    }
+    
+    # Then check the number of cells in the test time-sex-vax-clust overall
+    if (cellgist[i,j+3] <= 30) {
+      next
+    }
+    if (cellgist[i,j+3] > 30) {
+    
+    # Execute DEG analysis
+    Idents(testtemp1) <- "time_sex_vax_clust"
+    DefaultAssay(testtemp1) <- "RNA"
+    
+    ident1 = paste("D", SEX, "vipex", colnames(cellgist)[j+3], sep = "_") # control
+    ident2 = paste(cellgist[i,1], SEX, strsplit(cellgist$Vax[i], split = " ")[[1]][2], colnames(cellgist)[j+3], sep = "_") 
+    
+    print(ident1)
+    print(ident2)
+    
+    cells1 <- WhichCells(object = testtemp1, idents = ident1) # control
+    cells2 <- WhichCells(object = testtemp1, idents = ident2)
+    
+    # here test whether the biological replicates have adequate number of cells (15 cells at least)
+    # move ahead with 2 or more samples in both, skip otherwise
+    cells1_depth <- c()
+    for (p in 1:length(cells1)) {
+      cells1_depth <- c(cells1_depth, sum(whole4SCT$mouseID_time_cluster == cells1[p]))
+    }
+    names(cells1_depth) <- cells1
+    cells1_depth <- cells1_depth[which(cells1_depth >= 15)]
+    Cell1 <- names(cells1_depth)
+    
+    cells2_depth <- c()
+    for (p in 1:length(cells2)) {
+      cells2_depth <- c(cells2_depth, sum(whole4SCT$mouseID_time_cluster == cells2[p]))
+    }
+    names(cells2_depth) <- cells2
+    cells2_depth <- cells2_depth[which(cells2_depth >= 15)]
+    Cell2 <- names(cells2_depth)
+    
+    if ((length(Cell1) >= 2) && (length(Cell2) >= 2)) {
+    
+    # deseq group info
+    group.info <- data.frame(row.names = c(Cell1, Cell2))
+    group.info[cells1, "group"] <- "Group1" # control
+    group.info[cells2, "group"] <- "Group2" 
+    group.info[, "group"] <- factor(x = group.info[, "group"])
+    group.info$wellKey <- rownames(x = group.info)
+    
+    # data matrix
+    #data.use <-  as.matrix(GetAssayData(object = testtemp1, slot = "count"))
+    data.use <-  GetAssayData(object = testtemp1, slot = "count")
+    data.use <- data.use[, rownames(x = group.info), drop = FALSE]
+    
+    # Execute DESeq
+    dds1 <- DESeq2::DESeqDataSetFromMatrix(
+    countData = data.use,
+    colData = group.info,
+    design = ~ group
+    )
+    dds1 <- DESeq(dds1, fitType = "local", quiet = TRUE)
+    
+    # Benjamini
+    res_BH <- DESeq2::results(
+    object = dds1,
+    pAdjustMethod = "BH"
+    )
+    
+    # Fold change shrinking
+    resLFC <- lfcShrink(dds1, coef = resultsNames(dds1)[2], type = "apeglm", quiet = TRUE)
+    
+    # generate result data frames
+    # Benjamini
+    to.return.ben <- data.frame()
+    to.return.ben <- data.frame(genes = rownames(res_BH), cluster = rep(colnames(cellgist)[j+3], length(res_BH$pvalue)),
+                            baseline = res_BH$baseMean, fc = res_BH$log2FoldChange, LFC_sh = resLFC$log2FoldChange,
+                            p_val = res_BH$pvalue, p_adj = res_BH$padj)
+    
+    
+    # filter on adjuster p-value and fold change
+    # Benjamini
+    to.return.ben <- to.return.ben[to.return.ben$p_adj<0.1,]
+    to.return.ben <- to.return.ben[abs(to.return.ben$LFC_sh)>0.25,]
+    to.return.ben <- to.return.ben[-which(is.na(to.return.ben$p_val)),]
+    
+    # Concatenate
+    # Benjamini
+    if (j == 1) {
+      bde_ben <- to.return.ben
+    } else {
+      bde_ben <- rbind(bde_ben, to.return.ben)
+    }
+  
+    }
+    }
+  }
+  DEG_list_benjamini[[m]] <- bde_ben
+  m <- m + 1
+}
+
+return(DEG_list_benjamini)
+}
+```
+
+Carry out DESeq for four tissues.
+```{r}
+dLN_DEG_list <- DESEq_wrap(dLN_aggregate, dLN_gist, dLN_data)
+PBMC_DEG_list <- DESEq_wrap(PBMC_aggregate, PBMC_gist, PBMC_data)
+spleen_DEG_list <- DESEq_wrap(spleen_aggregate, spleen_gist, spleen_data)
+ndLN_DEG_list <- DESEq_wrap(ndLN_aggregate, ndLN_gist, ndLN_data)
+```
+Save the DEG lists.
+```{r}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_10")
+save(ndLN_DEG_list, file = "ndLN_DEG_list.rda")
+save(dLN_DEG_list, file = "dLN_DEG_list.rda")
+save(PBMC_DEG_list, file = "PBMC_DEG_list.rda")
+save(spleen_DEG_list, file = "spleen_DEG_list.rda")
+```
+

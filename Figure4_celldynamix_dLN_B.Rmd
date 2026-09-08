@@ -1,0 +1,111 @@
+This markdown performs a crumblr differential abundance analysis of dLN cell-type frequencies.
+Each timepoint (D0 through D30) is compared against the pooled vipex internal control, separately
+by sex, using dream() mixed models with a MouseID random effect to account for repeated samples
+(the Sample column) coming from the same mouse.
+
+Load packages.
+```{r}
+library(crumblr)
+library(variancePartition)
+library(tidyverse)
+```
+
+load data.
+```{r}
+dLN_data <- readRDS("./cell_freq/dLN_abundance.rds")
+dLN_metadata <- readRDS("./cell_freq/dLN_abundance_metadata.rds")
+```
+
+Incorporate the batch metadata.
+```{r}
+batch <- c()
+
+for (k in 1:dim(dLN_metadata)[1]) {
+  tempstring <- strsplit(dLN_metadata$Sample[k], split = "H")
+  batch <- c(batch, tempstring[[1]][1])
+}
+
+dLN_metadata$Batch <- batch
+```
+
+Clean the data and metadata further. remove naive. remove cell types representing less than 0.1%.
+```{r}
+dLN_metadata$Vax[dLN_metadata$Vax == "Vipex "] <- "Vipex"
+dLN_metadata$Vax[dLN_metadata$Vax == "vipex"] <- "Vipex"
+
+# Remove naive
+dLN_data <- dLN_data[-which(dLN_metadata$Vax == "naïve"),]
+dLN_metadata <- dLN_metadata[-which(dLN_metadata$Vax == "naïve"), ]
+
+# Cluster count matrix: samples x clusters in sample_cluster1, transpose to clusters x samples
+counts_mat <- as.matrix(dLN_data)
+df_cellCounts <- t(counts_mat)
+
+# Drop clusters below 0.1% of total cells
+prop <- rowSums(df_cellCounts) / sum(df_cellCounts) * 100
+df_cellCounts <- df_cellCounts[which(prop > 0.1), ]
+df_cellCounts <- t(df_cellCounts)
+```
+
+Apply the crumblr transformation.
+```{r}
+cobj <- crumblr(df_cellCounts)
+```
+
+Variance partitioning: how much of the variance in dLN cell frequencies is explained by mouse,
+timepoint, sex and vaccine-response group.
+```{r}
+form <- ~ (1 | MouseID) + (1 | Vax) + (1 | Time) + (1 | Sex) + (1 | Batch) 
+vp <- fitExtractVarPartModel(cobj, form, dLN_metadata)
+plotPercentBars(vp)
+```
+PCA on the standardised crumblr values.
+```{r}
+pca <- prcomp(t(standardize(cobj)))
+df_pca <- merge(pca$x, dLN_metadata, by = "row.names")
+
+ggplot(df_pca, aes(PC1, PC2, color = Time, shape = Vax)) +
+  geom_point(size = 3) +
+  theme_classic() +
+  theme(aspect.ratio = 1)
+```
+Hierarchical clustering of samples based on the crumblr-transformed values.
+```{r}
+heatmap(cobj$E)
+```
+Differential testing: for each sex and vax fit a dream() mixed model comparing at every time point.
+```{r}
+dLN_data <- as.data.frame(df_cellCounts)
+dLN_celldy_list <- list()
+for (s in c("M", "F")) {
+  for (t in c("D1", "D3", "D5", "D7", "D30")) {
+    for (v in c("YF good", "YF bad")) {
+      
+      dLN_data_s <- dLN_data[which(dLN_metadata$Sex == s),]
+      dLN_metadata_s <- dLN_metadata[which(dLN_metadata$Sex == s), ]
+      
+      dLN_data_st <- dLN_data_s[which(dLN_metadata_s$Time %in% c("D0", t)),]
+      dLN_metadata_st <- dLN_metadata_s[which(dLN_metadata_s$Time %in% c("D0", t)),]
+      
+      dLN_data_stv <- dLN_data_st[which(dLN_metadata_st$Vax %in% c("Vipex", v)),]
+      dLN_metadata_stv <- dLN_metadata_st[which(dLN_metadata_st$Vax %in% c("Vipex", v)),]
+      
+      dLN_metadata_stv$Vax <- relevel(factor(dLN_metadata_stv$Vax), ref = "Vipex")
+  
+      cobj_stv <- crumblr(dLN_data_stv)
+      fit_stv <- dream(cobj_stv, ~ Vax + (1 | MouseID) + (1 | Batch), dLN_metadata_stv)
+      fit_stv <- eBayes(fit_stv)
+    
+    dLN_celldy_list[[paste(s, t, v, sep = "_")]] <- topTable(fit_stv, coef = paste0("Vax", v), number = Inf)
+    }
+  }
+}
+
+#dLN_celldy_DF <- bind_rows(dLN_celldy_list)
+#rownames(dLN_celldy_DF) <- NULL
+```
+Keep the significant hits, using topTable's own BH-adjusted p-value (adj.P.Val), computed jointly
+across all clusters and group-vs-vipex coefficients within each sex's model.
+```{r}
+dLN_celldy_DF <- dLN_celldy_DF[dLN_celldy_DF$adj.P.Val < 0.05, ]
+```

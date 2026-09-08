@@ -1,0 +1,386 @@
+This markdown achieves the following goals:
+1. Plots distribution of fold changes (main text figure)
+2. Generates table of gene-types (main text within-figure table)
+
+
+Load packages.
+```{r}
+library(ggplot2)
+library(ggpubr)
+```
+
+Load data.
+```{r}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_10")
+
+load("dLN_DEG_list.rda")
+load("PBMC_DEG_list.rda")
+load("spleen_DEG_list.rda")
+load("ndLN_DEG_list.rda")
+```
+
+Plot fold change distributions.
+```{r}
+#temp1 <- PBMC_DEG_list[[7]] # PBMC, D3, female, good vax
+#temp2 <- PBMC_DEG_list[[8]] # PBMC, D3, female, bad vax
+#temp1 <- dLN_DEG_list[[9]] # dLN, D5, male, good vax
+#temp2 <- dLN_DEG_list[[10]] # dLN, D5, male, bad vax
+temp1 <- dLN_DEG_list[[5]] # dLN, D3, male, good vax
+temp2 <- dLN_DEG_list[[6]] # dLN, D3, male, bad vax
+
+temp1_up <- temp1[temp1$LFC_sh > 0,]
+temp1_down <- temp1[temp1$LFC_sh < 0,]
+temp2_up <- temp2[temp2$LFC_sh > 0,]
+temp2_down <- temp2[temp2$LFC_sh < 0,]
+
+library(ggplot2)
+# plot histogram on g-score, bisect1
+plot1 <- ggplot(temp1_up, aes(x=LFC_sh)) + geom_histogram(binwidth=0.5,color="blue", fill="white", linewidth = 1.2) + theme_bw() + 
+  theme(panel.grid.major = element_blank(),  
+        panel.grid.minor = element_blank(),
+        axis.text.y=element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank()) 
+   #scale_x_continuous(limits = c(-3, 3), minor_breaks = seq(-3, 3, by = 0.5)) +  ylim(0, 800) +
+
+plot2 <- ggplot(temp1_down, aes(x=LFC_sh)) + geom_histogram(binwidth=0.5, color="blue", fill="white", linewidth = 1.2) + theme_bw() + 
+  ylim(0, 800) +
+  theme(panel.grid.major = element_blank(),  
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank())  #ylim(0, 425) + ylim(0, 650) +
+
+plot3 <- ggplot(temp2_up, aes(x=LFC_sh)) + geom_histogram(binwidth=0.5,color="#ff6800", fill="white", linewidth = 1.2) + theme_bw() + 
+  ylim(0, 1250) +
+  theme(panel.grid.major = element_blank(),  
+        panel.grid.minor = element_blank(),
+        axis.text.y=element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank()) # ylim(0, 600) + ylim(0, 850) +
+   #scale_x_continuous(limits = c(-3, 3), minor_breaks = seq(-3, 3, by = 0.5)) +
+   #scale_y_log10(breaks = c(1, 10, 100, 1000, 10000, 100000))
+
+plot4 <- ggplot(temp2_down, aes(x=LFC_sh)) + geom_histogram(binwidth=0.5,color="#ff6800", fill="white", linewidth = 1.2) + theme_bw() +
+  ylim(0, 1250) +
+  theme(panel.grid.major = element_blank(),  
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank()) # ylim(0, 600) + ylim(0, 850) +
+
+fig <- ggarrange(plot2, plot1, plot4, plot3, nrow = 2, ncol = 2)
+```
+
+Gene type table for main text.
+```{r}
+# D1 M: 1, 2
+# D1 F: 3, 4
+# D3 M: 5, 6
+# D3 F: 7, 8
+# D5 M: 9, 10
+# D5 F: 11, 12
+# D7 M: 13, 14
+# D7 F: 15, 16
+
+temp1 <- dLN_DEG_list[[5]] # dLN, D3, male, good vax
+temp2 <- dLN_DEG_list[[6]] # dLN, D3, male, bad vax
+  
+temp1_up <- temp1[temp1$LFC_sh > 0,]
+temp1_down <- temp1[temp1$LFC_sh < 0,]
+temp2_up <- temp2[temp2$LFC_sh > 0,]
+temp2_down <- temp2[temp2$LFC_sh < 0,]  
+
+# common up
+gene_of_cluster_gr1 <- paste(temp1_up$genes, temp1_up$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_up$genes, temp2_up$cluster, sep = "/")
+common_up <- intersect(gene_of_cluster_gr1, gene_of_cluster_gr2)
+#if (length(common_up)==0) {common_up <- c(); s1 <- 0} else {
+#if (length(common_up) < 10) {s1 <- length(common_up)} else {s1 <- 10}}
+
+# common down
+gene_of_cluster_gr1 <- paste(temp1_down$genes, temp1_down$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_down$genes, temp2_down$cluster, sep = "/")
+common_down <- intersect(gene_of_cluster_gr1, gene_of_cluster_gr2)
+#if (length(common_down)==0) {common_down <- c(); s2 <- 0} else {
+#if (length(common_down) < 10) {s2 <- length(common_down)} else {s2 <- 10}}
+
+# Stoic: good-up, good-down, bad-up, bad-down
+interSection_up <- intersect(unique(temp1_up$genes), unique(temp2_up$genes))
+stoic_good_up <- setdiff(unique(temp1_up$genes), interSection_up)
+stoic_bad_up <- setdiff(unique(temp2_up$genes), interSection_up)
+
+stoic_good_up_all <- c()
+for (p in 1:length(stoic_good_up)) {
+  for (r in 1:dim(temp1_up)[1]) {
+    if (stoic_good_up[p] == temp1_up$genes[r]) {
+      stoic_good_up_all <- c(stoic_good_up_all, paste(temp1_up$genes[r], temp1_up$cluster[r], sep = "/"))
+    }
+  }
+}
+
+stoic_bad_up_all <- c()
+for (p in 1:length(stoic_bad_up)) {
+  for (r in 1:dim(temp2_up)[1]) {
+    if (stoic_bad_up[p] == temp2_up$genes[r]) {
+      stoic_bad_up_all <- c(stoic_bad_up_all, paste(temp2_up$genes[r], temp2_up$cluster[r], sep = "/"))
+    }
+  }
+}
+
+#if (length(stoic_good_up_all)==0) {stoic_good_up_all <- c(); s5 <- 0} else {
+#if (length(stoic_good_up_all) < 10) {s5 <- length(stoic_good_up_all)} else {s5 <- 10}}
+#if (length(stoic_bad_up_all)==0) {stoic_bad_up_all <- c(); s6 <- 0} else {
+#if (length(stoic_bad_up_all) < 10) {s6 <- length(stoic_bad_up_all)} else {s6 <- 10}}
+
+interSection_down <- intersect(unique(temp1_down$genes), unique(temp2_down$genes))
+stoic_good_down <- setdiff(unique(temp1_down$genes), interSection_down)
+stoic_bad_down <- setdiff(unique(temp2_down$genes), interSection_down)
+
+stoic_good_down_all <- c()
+for (p in 1:length(stoic_good_down)) {
+  for (r in 1:dim(temp1_down)[1]) {
+    if (stoic_good_down[p] == temp1_down$genes[r]) {
+      stoic_good_down_all <- c(stoic_good_down_all, paste(temp1_down$genes[r], temp1_down$cluster[r], sep = "/"))
+    }
+  }
+}
+
+stoic_bad_down_all <- c()
+for (p in 1:length(stoic_bad_down)) {
+  for (r in 1:dim(temp2_down)[1]) {
+    if (stoic_bad_down[p] == temp2_down$genes[r]) {
+      stoic_bad_down_all <- c(stoic_bad_down_all, paste(temp2_down$genes[r], temp2_down$cluster[r], sep = "/"))
+    }
+  }
+}
+
+#if (length(stoic_good_down_all)==0) {stoic_good_down_all <- c(); s7 <- 0} else {
+#if (length(stoic_good_down_all) < 10) {s7 <- length(stoic_good_down_all)} else {s7 <- 10}}
+#if (length(stoic_bad_down_all)==0) {stoic_bad_down_all <- c(); s8 <- 0} else {
+#if (length(stoic_bad_down_all) < 10) {s8 <- length(stoic_bad_down_all)} else {s8 <- 10}}
+
+# Flakey up, Flakey down
+common_up_gene <- c()
+for (q in 1:length(common_up)) {D <- strsplit(common_up[q], split = "/"); common_up_gene <- c(common_up_gene, D[[1]][1])}
+flakey_up <- setdiff(interSection_up, common_up_gene)
+
+flakey_good_up_all <- c()
+for (p in 1:length(flakey_up)) {
+  for (r in 1:dim(temp1_up)[1]) {
+    if (flakey_up[p] == temp1_up$genes[r]) {
+      flakey_good_up_all <- c(flakey_good_up_all, paste(temp1_up$genes[r], temp1_up$cluster[r], sep = "/"))
+    }
+  }
+}
+
+flakey_bad_up_all <- c()
+for (p in 1:length(flakey_up)) {
+  for (r in 1:dim(temp2_up)[1]) {
+    if (flakey_up[p] == temp2_up$genes[r]) {
+      flakey_bad_up_all <- c(flakey_bad_up_all, paste(temp2_up$genes[r], temp2_up$cluster[r], sep = "/"))
+    }
+  }
+}
+
+common_down_gene <- c()
+for (q in 1:length(common_down)) {D <- strsplit(common_down[q], split = "/"); common_down_gene <- c(common_down_gene, D[[1]][1])}
+flakey_down <- setdiff(interSection_down, common_down_gene)
+
+flakey_good_down_all <- c()
+for (p in 1:length(flakey_down)) {
+  for (r in 1:dim(temp1_down)[1]) {
+    if (flakey_down[p] == temp1_down$genes[r]) {
+      flakey_good_down_all <- c(flakey_good_down_all, paste(temp1_down$genes[r], temp1_down$cluster[r], sep = "/"))
+    }
+  }
+}
+
+flakey_bad_down_all <- c()
+for (p in 1:length(flakey_down)) {
+  for (r in 1:dim(temp2_down)[1]) {
+    if (flakey_down[p] == temp2_down$genes[r]) {
+      flakey_bad_down_all <- c(flakey_bad_down_all, paste(temp2_down$genes[r], temp2_down$cluster[r], sep = "/"))
+    }
+  }
+}
+
+#if (length(flakey_up)==0) {flakey_up <- c(); s9 <- 0} else {
+#if (length(flakey_up) < 10) {s9 <- length(flakey_up)} else {s9 <- 10}}
+#if (length(flakey_down)==0) {flakey_down <- c(); s10 <- 0} else {
+#if (length(flakey_down) < 10) {s10 <- length(flakey_down)} else {s10 <- 10}}
+
+#common_stoic_flakey <- 2*length(common_up) + 2*length(common_down) + 
+#length(stoic_good_up_all) + length(stoic_good_down_all) + length(stoic_bad_up_all) + length(stoic_bad_down_all) +
+#length(flakey_good_up_all) + length(flakey_good_down_all) + length(flakey_bad_up_all) + length(flakey_bad_down_all) +
+#length(flakey_good_up_rest) + length(flakey_good_down_rest) + length(flakey_bad_up_rest) + length(flakey_bad_down_rest)  
+
+#common_stoic_flakey_all <- c(common_up, common_down, 
+#                             stoic_good_up_all, stoic_good_down_all, stoic_bad_up_all, stoic_bad_down_all,
+#                             flakey_good_up_all, flakey_good_down_all, flakey_bad_up_all, flakey_bad_down_all)
+
+
+# Get the flakey from the commons
+gene_of_cluster_gr1 <- paste(temp1_up$genes, temp1_up$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_up$genes, temp2_up$cluster, sep = "/")
+
+common_stoic_flakey_good_up <- c(common_up, stoic_good_up_all, flakey_good_up_all)
+
+common_stoic_flakey_bad_up <- c(common_up, stoic_bad_up_all, flakey_bad_up_all)
+
+flakey_good_up_rest <- setdiff(gene_of_cluster_gr1, common_stoic_flakey_good_up)
+
+flakey_bad_up_rest <- setdiff(gene_of_cluster_gr2, common_stoic_flakey_bad_up)
+
+gene_of_cluster_gr1 <- paste(temp1_down$genes, temp1_down$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_down$genes, temp2_down$cluster, sep = "/")
+
+common_stoic_flakey_good_down <- c(common_down, stoic_good_down_all, flakey_good_down_all)
+
+common_stoic_flakey_bad_down <- c(common_down, stoic_bad_down_all, flakey_bad_down_all)
+
+flakey_good_down_rest <- setdiff(gene_of_cluster_gr1, common_stoic_flakey_good_down)
+
+flakey_bad_down_rest <- setdiff(gene_of_cluster_gr2, common_stoic_flakey_bad_down)
+
+# Put the rest in all
+flakey_good_up_all <- c(flakey_good_up_all, flakey_good_up_rest)
+
+flakey_bad_up_all <- c(flakey_bad_up_all, flakey_bad_up_rest)
+
+flakey_good_down_all  <- c(flakey_good_down_all, flakey_good_down_rest)
+
+flakey_bad_down_all <- c(flakey_bad_down_all, flakey_bad_down_rest)
+```
+Diagonal comparisons.
+```{r}
+# common lead
+gene_of_cluster_gr1 <- paste(temp1_down$genes, temp1_down$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_up$genes, temp2_up$cluster, sep = "/")
+common_lead <- intersect(gene_of_cluster_gr1, gene_of_cluster_gr2)
+#if (length(common_lead)==0) {common_lead <- c(); s3 <- 0} else {
+#if (length(common_lead) < 10) {s3 <- length(common_lead)} else {s3 <- 10}}
+
+# common anti
+gene_of_cluster_gr1 <- paste(temp1_up$genes, temp1_up$cluster, sep = "/")
+gene_of_cluster_gr2 <- paste(temp2_down$genes, temp2_down$cluster, sep = "/")
+common_anti <- intersect(gene_of_cluster_gr1, gene_of_cluster_gr2)
+#if (length(common_anti)==0) {common_anti <- c(); s4 <- 0} else {
+#if (length(common_anti) < 10) {s4 <- length(common_anti)} else {s4 <- 10}}
+
+# general lead
+if (length(common_lead) > 0) {
+  common_lead_gene <- c()
+  for (q in 1:length(common_lead)) {D <- strsplit(common_lead[q], split = "/"); common_lead_gene <- c(common_lead_gene, D[[1]][1])}
+}
+general_lead <- intersect(unique(temp1_down$genes), unique(temp2_up$genes))
+if (length(common_lead) > 0) {
+  general_lead <- setdiff(general_lead, common_lead_gene)
+}
+#if (length(general_lead)==0) {general_lead <- c(); s11 <- 0} else {
+#if (length(general_lead) < 10) {s11 <- length(general_lead)} else {s11 <- 10}}
+general_lead_good_down <- c()
+for (p in 1:length(general_lead)) {
+  for (r in 1:dim(temp1_down)[1]) {
+    if (general_lead[p] == temp1_down$genes[r]) {
+      general_lead_good_down <- c(general_lead_good_down, paste(temp1_down$genes[r], temp1_down$cluster[r], sep = "/"))
+    }
+  }
+}
+
+general_lead_bad_up <- c()
+for (p in 1:length(general_lead)) {
+  for (r in 1:dim(temp2_up)[1]) {
+    if (general_lead[p] == temp2_up$genes[r]) {
+      general_lead_bad_up <- c(general_lead_bad_up, paste(temp2_up$genes[r], temp2_up$cluster[r], sep = "/"))
+    }
+  }
+}
+
+
+
+# General anti
+if (length(common_anti) > 0) {
+  common_anti_gene <- c()
+  for (q in 1:length(common_anti)) {D <- strsplit(common_anti[q], split = "/"); common_anti_gene <- c(common_anti_gene, D[[1]][1])}
+}
+general_anti <- intersect(unique(temp1_up$genes), unique(temp2_down$genes))
+if (length(common_anti) > 0) {
+  general_anti <- setdiff(general_anti, common_anti_gene)
+}
+#if (length(general_anti)==0) {general_anti <- c(); s12 <- 0} else {
+#if (length(general_anti) < 10) {s12 <- length(general_anti)} else {s12 <- 10}}
+
+general_anti_good_up <- c()
+for (p in 1:length(general_anti)) {
+  for (r in 1:dim(temp1_up)[1]) {
+    if (general_anti[p] == temp1_up$genes[r]) {
+      general_anti_good_up <- c(general_anti_good_up, paste(temp1_up$genes[r], temp1_up$cluster[r], sep = "/"))
+    }
+  }
+}
+
+general_anti_bad_down <- c()
+for (p in 1:length(general_anti)) {
+  for (r in 1:dim(temp2_down)[1]) {
+    if (general_anti[p] == temp2_down$genes[r]) {
+      general_anti_bad_down <- c(general_anti_bad_down, paste(temp2_down$genes[r], temp2_down$cluster[r], sep = "/"))
+    }
+  }
+}
+```
+Print the excel file for the main text.
+```{r}
+#frameit <- data.frame(items <- c("common_up", "common_down", "common_lead", "common_anti", "stoic_good_up", "stoic_good_down",
+#                                 "stoic_bad_up", "stoic_bad_down", "flakey_up", "flakey_down", "general lead", "general anti"),
+#                      counts <- c(length(common_up), length(common_down), length(common_lead), length(common_anti),    
+#                                  length(stoic_good_up), length(stoic_good_down), length(stoic_bad_up), length(stoic_bad_down),
+#                                  length(flakey_up), length(flakey_down), length(general_lead), length(general_anti)),
+#                      percentages <- counts/length(union(paste(rownames(temp1), temp1$cluster, sep = "/"), 
+#                                                  paste(rownames(temp2), temp2$cluster, sep = "/"))),
+#                      eg <- c(paste(sample(common_up, s1), collapse = ", "), paste(sample(common_down, s2), collapse = ", "),
+#                              paste(sample(common_lead, s3), collapse = ", "), paste(sample(common_anti, s4), collapse = ", "),
+#                              paste(sample(stoic_good_up, s5), collapse = ", "), paste(sample(stoic_good_down, s6), collapse = ", "),
+#                              paste(sample(stoic_bad_up, s7), collapse = ", "), paste(sample(stoic_bad_down, s8), collapse = ", "),
+#                              paste(sample(flakey_up, s9), collapse = ", "), paste(sample(flakey_down, s10), collapse = ", "),
+#                              paste(sample(general_lead, s11), collapse = ", "), paste(sample(general_anti, s12), collapse = ", ")))
+#colnames(frameit) <- c("items", "counts", "percentages", "eg")
+
+frameit <- data.frame(items <- c("common_up", "common_down", 
+                                 "stubborn_good_up", "stubborn_good_down", "stubborn_bad_up", "stubborn_bad_down",
+                                 "flakey_good_up", "flakey_good_down", "flakey_bad_up", "flakey_bad_down",
+                                 "common_lead", "common_anti", 
+                                 "general lead good down", "general lead bad up", "general anti good up", "general anti bad down"),
+                      
+                      counts <- c(length(common_up), length(common_down), 
+                                  length(stoic_good_up_all), length(stoic_good_down_all), length(stoic_bad_up_all), length(stoic_bad_down_all),
+                                  length(flakey_good_up_all), length(flakey_good_down_all), length(flakey_bad_up_all), length(flakey_bad_down_all),
+                                  length(common_lead), length(common_anti), 
+                                  length(general_lead_good_down), length(general_lead_bad_up), length(general_anti_good_up), length(general_anti_bad_down)),    
+                                  
+                      percentages <- counts/(dim(temp1)[1] + dim(temp2)[1]),
+                      
+                      eg <- c(paste(common_up, collapse = ", "), paste(common_down, collapse = ", "),
+                              paste(stoic_good_up_all, collapse = ", "), paste(stoic_good_down_all, collapse = ", "),
+                              paste(stoic_bad_up_all, collapse = ", "), paste(stoic_bad_down_all, collapse = ", "),
+                              paste(flakey_good_up_all, collapse = ", "), paste(flakey_good_down_all, collapse = ", "),
+                              paste(flakey_bad_up_all, collapse = ", "), paste(flakey_bad_down_all, collapse = ", "),
+                              paste(common_lead, collapse = ", "), paste(common_anti, collapse = ", "),
+                              paste(general_lead_good_down, collapse = ", "), paste(general_lead_bad_up, collapse = ", "),
+                              paste(general_anti_good_up, collapse = ", "), paste(general_anti_bad_down, collapse = ", ")))
+
+colnames(frameit) <- c("gene type", "#", "proportion", "gene/cluster")
+
+# Write excel file
+library(openxlsx)
+setwd("C:/Users/budha/Documents")
+write.xlsx(frameit, file = "gene_expression.xlsx")
+
+# get the number of up and down entries
+print(dim(temp1_up)[1])
+print(dim(temp1_down)[1])
+print(dim(temp2_up)[1])
+print(dim(temp2_down)[1])
+```
+
+
+
+

@@ -1,0 +1,343 @@
+To run the differential expression analysis first calculate the pseudobulked aggregate expression at the biological replicate level.
+Load packages.
+```{r warning=FALSE, message=FALSE}
+library(Seurat)
+library(SeuratDisk)
+```
+Load dLN data.
+```{r}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_04")
+dLN_data <- LoadH5Seurat("dLN_data.h5seurat")
+```
+Assign mouse information to dLN object.
+```{r}
+library(openxlsx)
+ann_D0 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D0")
+ann_D1 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D1")
+ann_D3 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D3")
+ann_D5 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D5")
+ann_D7 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D7")
+ann_D30 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D30")
+
+dLN_data@meta.data$mouseID = ""
+dLN_data@meta.data$mousetag = ""
+
+MouseID <- c()
+Mousetag <- c()
+
+ann_D1_1 <- ann_D1[1:7,] 
+ann_D1_2 <- ann_D1[8:14,] 
+
+for(k in dLN_data@meta.data$orig.id){
+  if (nchar(k) == 7) {
+    if (substr(k,1,2) == "D0") {
+      MouseID = c(MouseID, ann_D0$MouseID[ann_D0$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D0$Mousetag[ann_D0$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D1") {
+      #dLN 
+      if (substr(k,1,4) == "D105") {
+        MouseID = c(MouseID, ann_D1_1$MouseID[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_1$Mousetag[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      if (substr(k,1,4) == "D106") {
+        MouseID = c(MouseID, ann_D1_1$MouseID[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_1$Mousetag[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      
+      if (substr(k,1,4) == "D107") {
+        MouseID = c(MouseID, ann_D1_2$MouseID[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_2$Mousetag[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      if (substr(k,1,4) == "D108") {
+        MouseID = c(MouseID, ann_D1_2$MouseID[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_2$Mousetag[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+    }
+    
+    if (substr(k,1,2) == "D3") {
+      MouseID = c(MouseID, ann_D3$MouseID[ann_D3$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D3$Mousetag[ann_D3$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D5") {
+      MouseID = c(MouseID, ann_D5$MouseID[ann_D5$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D5$Mousetag[ann_D5$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D7") {
+      MouseID = c(MouseID, ann_D7$MouseID[ann_D7$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D7$Mousetag[ann_D7$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+  }
+  
+  if (nchar(k) == 8) {
+    if (substr(k,1,3) == "D30") {
+      MouseID = c(MouseID, ann_D30$MouseID[ann_D30$GEX.Hash.tag == as.numeric(substr(k,7,8))])
+      Mousetag = c(Mousetag, ann_D30$Mousetag[ann_D30$GEX.Hash.tag == as.numeric(substr(k,7,8))])
+    }
+  }
+}
+
+dLN_data@meta.data$mouseID = MouseID
+dLN_data@meta.data$mousetag = Mousetag
+
+dLN_data@meta.data$mouseID_time <- paste(dLN_data@meta.data$timepoint, dLN_data@meta.data$mouseID, sep = "_")
+dLN_data@meta.data$mouseID_time_cluster <- paste(dLN_data@meta.data$mouseID_time, 
+                                                 dLN_data@meta.data$cluster_symbol, sep = "_")
+```
+
+Now PBMC. Get the file and convert to aggregate.
+Load data.
+```{r}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_04")
+PBMC_data <- LoadH5Seurat("PBMC_data.h5seurat")
+```
+Assign mouseid information on the PBMC Seurat object.
+```{r}
+library(openxlsx)
+ann_D0 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D0")
+ann_D1 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D1")
+ann_D3 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D3")
+ann_D5 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D5")
+ann_D7 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D7")
+ann_D30 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D30")
+
+PBMC_data@meta.data$mouseID = ""
+PBMC_data@meta.data$mousetag = ""
+
+MouseID <- c()
+Mousetag <- c()
+
+ann_D1_1 <- ann_D1[1:7,] 
+ann_D1_2 <- ann_D1[8:14,] 
+
+for(k in PBMC_data@meta.data$orig.id){
+  if (nchar(k) == 7) {
+    if (substr(k,1,2) == "D0") {
+      MouseID = c(MouseID, ann_D0$MouseID[ann_D0$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D0$Mousetag[ann_D0$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D1") {
+      #PBMC 
+      if (substr(k,1,4) == "D101") {
+        MouseID = c(MouseID, ann_D1_1$MouseID[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_1$Mousetag[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      if (substr(k,1,4) == "D102") {
+        MouseID = c(MouseID, ann_D1_1$MouseID[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_1$Mousetag[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      
+      if (substr(k,1,4) == "D103") {
+        MouseID = c(MouseID, ann_D1_2$MouseID[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_2$Mousetag[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      if (substr(k,1,4) == "D104") {
+        MouseID = c(MouseID, ann_D1_2$MouseID[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_2$Mousetag[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+    }
+    
+    if (substr(k,1,2) == "D3") {
+      MouseID = c(MouseID, ann_D3$MouseID[ann_D3$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D3$Mousetag[ann_D3$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D5") {
+      MouseID = c(MouseID, ann_D5$MouseID[ann_D5$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D5$Mousetag[ann_D5$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D7") {
+      MouseID = c(MouseID, ann_D7$MouseID[ann_D7$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D7$Mousetag[ann_D7$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+  }
+  
+  if (nchar(k) == 8) {
+    if (substr(k,1,3) == "D30") {
+      MouseID = c(MouseID, ann_D30$MouseID[ann_D30$GEX.Hash.tag == as.numeric(substr(k,7,8))])
+      Mousetag = c(Mousetag, ann_D30$Mousetag[ann_D30$GEX.Hash.tag == as.numeric(substr(k,7,8))])
+    }
+  }
+}
+
+PBMC_data@meta.data$mouseID = MouseID
+PBMC_data@meta.data$mousetag = Mousetag
+
+PBMC_data@meta.data$mouseID_time <- paste(PBMC_data@meta.data$timepoint, PBMC_data@meta.data$mouseID, sep = "_")
+PBMC_data@meta.data$mouseID_time_cluster <- paste(PBMC_data@meta.data$mouseID_time, 
+                                                 PBMC_data@meta.data$cluster_symbol, sep = "_")
+```
+
+Now spleen. Get the file and convert to aggregate.
+Load data.
+```{r}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_04")
+spleen_data <- LoadH5Seurat("spleen_data.h5seurat")
+```
+
+Assign mouseid information on the spleen Seurat object.
+```{r}
+library(openxlsx)
+ann_D0 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D0")
+ann_D1 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D1")
+ann_D3 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D3")
+ann_D5 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D5")
+ann_D7 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D7")
+ann_D30 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D30")
+
+spleen_data@meta.data$mouseID = ""
+spleen_data@meta.data$mousetag = ""
+
+MouseID <- c()
+Mousetag <- c()
+
+ann_D1_1 <- ann_D1[1:7,] 
+ann_D1_2 <- ann_D1[8:14,] 
+
+for(k in spleen_data@meta.data$orig.id){
+  if (nchar(k) == 7) {
+    if (substr(k,1,2) == "D0") {
+      MouseID = c(MouseID, ann_D0$MouseID[ann_D0$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D0$Mousetag[ann_D0$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D1") {
+      #spleen 
+      if (substr(k,1,4) == "D109") {
+        MouseID = c(MouseID, ann_D1_1$MouseID[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_1$Mousetag[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      if (substr(k,1,4) == "D110") {
+        MouseID = c(MouseID, ann_D1_1$MouseID[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_1$Mousetag[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      
+      if (substr(k,1,4) == "D111") {
+        MouseID = c(MouseID, ann_D1_2$MouseID[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_2$Mousetag[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      if (substr(k,1,4) == "D112") {
+        MouseID = c(MouseID, ann_D1_2$MouseID[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_2$Mousetag[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+    }
+    
+    if (substr(k,1,2) == "D3") {
+      MouseID = c(MouseID, ann_D3$MouseID[ann_D3$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D3$Mousetag[ann_D3$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D5") {
+      MouseID = c(MouseID, ann_D5$MouseID[ann_D5$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D5$Mousetag[ann_D5$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D7") {
+      MouseID = c(MouseID, ann_D7$MouseID[ann_D7$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D7$Mousetag[ann_D7$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+  }
+  
+  if (nchar(k) == 8) {
+    if (substr(k,1,3) == "D30") {
+      MouseID = c(MouseID, ann_D30$MouseID[ann_D30$GEX.Hash.tag == as.numeric(substr(k,7,8))])
+      Mousetag = c(Mousetag, ann_D30$Mousetag[ann_D30$GEX.Hash.tag == as.numeric(substr(k,7,8))])
+    }
+  }
+}
+
+spleen_data@meta.data$mouseID = MouseID
+spleen_data@meta.data$mousetag = Mousetag
+
+spleen_data@meta.data$mouseID_time <- paste(spleen_data@meta.data$timepoint, spleen_data@meta.data$mouseID, sep = "_")
+spleen_data@meta.data$mouseID_time_cluster <- paste(spleen_data@meta.data$mouseID_time, 
+                                                 spleen_data@meta.data$cluster_symbol, sep = "_")
+```
+
+Now ndLN. Get the file and convert to aggregate.
+Load data.
+```{r}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_04")
+ndLN_data <- LoadH5Seurat("ndLN_data.h5seurat")
+```
+Assign mouseid information on the ndLN Seurat object.
+```{r}
+library(openxlsx)
+ann_D0 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D0")
+ann_D1 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D1")
+ann_D3 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D3")
+ann_D5 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D5")
+ann_D7 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D7")
+ann_D30 <- read.xlsx('time_sex_vax_mouseid.xlsx', sheet = "D30")
+
+ndLN_data@meta.data$mouseID = ""
+ndLN_data@meta.data$mousetag = ""
+
+MouseID <- c()
+Mousetag <- c()
+
+ann_D1_1 <- ann_D1[1:7,] 
+ann_D1_2 <- ann_D1[8:14,] 
+
+for(k in ndLN_data@meta.data$orig.id){
+  if (nchar(k) == 7) {
+    if (substr(k,1,2) == "D0") {
+      MouseID = c(MouseID, ann_D0$MouseID[ann_D0$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D0$Mousetag[ann_D0$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D1") {
+      #ndLN 
+      if (substr(k,1,4) == "D115") {
+        MouseID = c(MouseID, ann_D1_1$MouseID[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_1$Mousetag[ann_D1_1$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+      
+      if (substr(k,1,4) == "D116") {
+        MouseID = c(MouseID, ann_D1_2$MouseID[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+        Mousetag = c(Mousetag, ann_D1_2$Mousetag[ann_D1_2$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      }
+    }
+    
+    if (substr(k,1,2) == "D3") {
+      MouseID = c(MouseID, ann_D3$MouseID[ann_D3$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D3$Mousetag[ann_D3$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D5") {
+      MouseID = c(MouseID, ann_D5$MouseID[ann_D5$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D5$Mousetag[ann_D5$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+    
+    if (substr(k,1,2) == "D7") {
+      MouseID = c(MouseID, ann_D7$MouseID[ann_D7$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+      Mousetag = c(Mousetag, ann_D7$Mousetag[ann_D7$GEX.Hash.tag == as.numeric(substr(k,6,7))])
+    }
+  }
+  
+  if (nchar(k) == 8) {
+    if (substr(k,1,3) == "D30") {
+      MouseID = c(MouseID, ann_D30$MouseID[ann_D30$GEX.Hash.tag == as.numeric(substr(k,7,8))])
+      Mousetag = c(Mousetag, ann_D30$Mousetag[ann_D30$GEX.Hash.tag == as.numeric(substr(k,7,8))])
+    }
+  }
+}
+
+ndLN_data@meta.data$mouseID = MouseID
+ndLN_data@meta.data$mousetag = Mousetag
+
+ndLN_data@meta.data$mouseID_time <- paste(ndLN_data@meta.data$timepoint, ndLN_data@meta.data$mouseID, sep = "_")
+ndLN_data@meta.data$mouseID_time_cluster <- paste(ndLN_data@meta.data$mouseID_time, 
+                                                 ndLN_data@meta.data$cluster_symbol, sep = "_")
+```
+
+Clean up environment.
+```{r}
+rm(list = setdiff(ls(), c("dLN_data", "PBMC_data", "spleen_data", "ndLN_data")))
+```
+
