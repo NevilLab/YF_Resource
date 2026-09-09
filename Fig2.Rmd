@@ -1,0 +1,1042 @@
+Validation figures.
+1. Querec et al., 2006
+2. Gaucher et al., 2008
+3. Querec et al., 2008
+4. Costa Neves et al., 2009
+5. Marquardt et al., 2015
+6. Hou et al., 2017
+7. Mantel et al., 2024
+
+We attempt to recapitulate the results from previous papers. We start with Querec et al 2006.
+In Querec et al., the authors report that 
+1. CD80, CD40, CD86, IL6, TNF-a, IL-10 are upregulated in MoDCs day 3 day 5, PBMC. Human. Similar to cDC.
+2. IFN alpha in pDC, PBMC. Day 3 and 5, Human. PBMC.
+3. IL-12p40, IL-6 are upregulated in CD11c+ DCs from spleen, day 1, 3 day 5. Mouse.
+4. CD80, CD40, CD86, I-Ab upregulated in CD11c+ DCs from dLN, day 1, 3. Mouse.
+5. Less important (because separately treated): CD4+ and CD8+ cells IFN-gamma, IL-4, IL-5, IL-13. Day 1, 3, 5, 7, 30. MOuse.
+
+Load packages.
+```{r}
+library(Seurat)
+library(SeuratDisk)
+library(ggplot2)
+library(ggpubr)
+```
+
+Load data.
+```{r}
+setwd("./Data/Aggregated_objects")
+
+dLN_aggre <- readRDS("dLN_aggre.rds")
+spleen_aggre <- readRDS("spleen_aggre.rds")
+PBMC_aggre <- readRDS("PBMC_aggre.rds")
+ndLN_aggre <- readRDS("ndLN_aggre.rds")
+```
+Normalize the aggregate data. Expression of genes when all counts are pulled from the respective clusters.
+```{r}
+dLN_aggre <- NormalizeData(dLN_aggre)
+spleen_aggre <- NormalizeData(spleen_aggre)
+PBMC_aggre <- NormalizeData(PBMC_aggre)
+ndLN_aggre <- NormalizeData(ndLN_aggre)
+```
+
+
+```{r}
+# pull out PBMC, cDCs, vipex and good-vax
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "d1")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30")
+temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5")
+temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+#temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+temp3@meta.data$time_vax <- factor(temp3@meta.data$time_vax, levels = c("Dneg_naïve", "D0_Vipex ", "D3_YF good"))
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Cd80", pt.size = 0, cols = c("#00b681","#9c9c9c","#143fff")) + stat_compare_means()#+
+#stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+#DefaultAssay(temp3) <- "SCT"
+#VlnPlot(temp3, features = "Cd80", pt.size = 0) #+
+#stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Cd86", pt.size = 0, cols = c("#00b681","#9c9c9c","#143fff")) + stat_compare_means()#+
+#stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+#DefaultAssay(temp3) <- "SCT"
+#VlnPlot(temp3, features = "Cd86", pt.size = 0) #+
+#stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Tnf",  pt.size = 0, cols = c("#00b681","#9c9c9c","#143fff")) + stat_compare_means() #+
+#stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+#DefaultAssay(temp3) <- "SCT"
+#VlnPlot(temp3, features = "Tnf", pt.size = 0) #+
+#stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+
+
+# pull vipex and day 1, vipex and day 3, vipex and day 5
+
+# plot CD80, CD40, CD86, IL6, TNF-a, IL-10
+
+
+Idents(spleen_aggre) <- "cluster" 
+temp1 <- subset(spleen_aggre, idents = "d2")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30")
+temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5")
+temp2 <- subset(temp2, subset = time != "D3")
+temp3 <- subset(temp2, subset = vax != "vipex")
+#temp3 <- subset(temp3, subset = vax != "naïve")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Il12b", pt.size = 0, cols = rep("grey",4))
+
+Idents(dLN_aggre) <- "cluster" 
+temp1 <- subset(dLN_aggre, idents = "d1")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30")
+temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5")
+temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+#temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+temp3@meta.data$time_vax <- factor(temp3@meta.data$time_vax, levels = c("Dneg_naïve", "D0_Vipex ", "D3_YF good"))
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Cd80", pt.size = 0, cols = c("#00b681","#9c9c9c","#143fff")) + stat_compare_means()
+VlnPlot(temp3, features = "Cd40", pt.size = 0, cols = c("#00b681","#9c9c9c","#143fff")) + stat_compare_means()
+
+
+Idents(dLN_aggre) <- "cluster" 
+temp1 <- subset(dLN_aggre, idents = "n1")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30")
+temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5")
+temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+#temp3 <- subset(temp3, subset = vax != "naïve")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Ifng", pt.size = 0, cols = rep("grey",4))
+
+Idents(dLN_aggre) <- "cluster" 
+temp1 <- subset(dLN_aggre, idents = paste(greeks('tau'),5, sep = ""))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30")
+temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5")
+temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+#temp3 <- subset(temp3, subset = vax != "naïve")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+temp3@meta.data$time_vax <- factor(temp3@meta.data$time_vax, levels = c("Dneg_naïve", "D0_Vipex ", "D3_YF good"))
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Ifng", pt.size = 0, cols = c("#00b681","#9c9c9c","#143fff")) + stat_compare_means()
+
+
+```
+Next attempt is Gaucher et al., 2008.
+1. Look at the following gene expression on Day 1, 3, 5, besides naive and vipex.
+IFN-induced, TLR associated:
+Aim2, G1p2, G1p3, Gbp1, Gbp2, Ifi27, Ifi30, Mx1, Mx2, Oas1, Oas2, Oas3, Sp110, Trim21, Trim22, Trim5, Il15, Irf7, Myd88, Ticam1, Tlr7
+```{r}
+features <- c("Aim2", "Isg15", "Gbp2", "Gbp2b", "Ifi27", "Ifi30", "Oas3", "Sp110", "Trim21", "Trim5", "Il15", "Irf7", "Myd88", "Ticam1", "Tlr7")
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D0")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "naïve")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 5)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D0")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "Vipex ")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 5)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D3")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 5)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D3")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF bad")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 5)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D5")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 5)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D5")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF bad")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 5)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),10, sep = ""))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Gbp2", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+#VlnPlot(temp3, features = "Ifi27", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('nu'),1, sep = ""))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Il15", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Myd88", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Oas3", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('mu'),1, sep = ""))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Tlr7", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+#VlnPlot(temp3, features = "Marco", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+#VlnPlot(temp3, features = "Cd68", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+#VlnPlot(temp3, features = "Ifi16", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+#VlnPlot(temp3, features = "Csf1r", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b13")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Irf7", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Trim5", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b10")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Sp110", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b6")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Aim2", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+```
+```{r}
+features <- c("Gzmb", "Prf1", "Bank1", "Casp1", "Il1r2",  "Stat1", "Tnfsf13b", "C1qa", "C1qb", "C3ar1", "Serping1")
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D0")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "naïve")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 4)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D0")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "Vipex ")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 4)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D3")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 5)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D3")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF bad")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 4)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D5")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 4)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D5")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF bad")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 4)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b6")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Casp1", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Bank1", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('nu'),1, sep = ""))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Il1r2", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+temp1 <- PBMC_aggre
+temp1@meta.data$clus_sym_firstcharacter <- substr(temp1@meta.data$cluster, start = 1, stop = 1)
+Idents(temp1) <- "clus_sym_firstcharacter" 
+temp1 <- subset(temp1, idents = "b")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Bank1", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b2")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Bank1", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+temp1 <- PBMC_aggre
+temp1@meta.data$clus_sym_firstcharacter <- substr(temp1@meta.data$cluster, start = 1, stop = 1)
+Idents(temp1) <- "clus_sym_firstcharacter" 
+temp1 <- subset(temp1, idents = greeks('tau'))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Stat1", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),7, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Stat1", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+```
+Next, Querec et al., 2009.
+Start with Il1alpha and CXCL10.
+```{r}
+features <- c("Il1a", "Cxcl10")
+features <- c("Cd14", "Fcgr3")
+features <- c("Cd38", "H2-Eb1")
+features <- c("Bend4", "Kbtbd7", "Tnfrsf17", "Tpd52", "Nap1l2", "Pfkfb3")
+features <- c("Ddx58", "Eif2ak2", "Ifih1", "Jun", "Lamp3", "Siglec1")
+features <- c("Rgs1", "Cd69", "Aldh3b1", "Ackr3", "Asgr2", "Slc2a6", "Mef2a", "Ctbp1", "Itgal", "Eif2ak4")
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D0")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "Vipex ")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 5)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D3")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 3)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D5")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 3)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D7")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 3)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('mu'),1, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+#temp2 <- subset(temp2, subset = time != "D5"); 
+#temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Cd14", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Fcgr3", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('n'),1, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+#temp2 <- subset(temp2, subset = time != "D5"); 
+#temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Cd14", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Fcgr3", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),2, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Bend4", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),10, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Bend4", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+temp1 <- PBMC_aggre
+temp1@meta.data$clus_sym_firstcharacter <- substr(temp1@meta.data$cluster, start = 1, stop = 1)
+Idents(temp1) <- "clus_sym_firstcharacter" 
+temp1 <- subset(temp1, idents = "b")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Tpd52", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b6")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Tpd52", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b7")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Tpd52", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b8")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Tpd52", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b9")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Tpd52", pt.size = 0, cols = rep("grey",2)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+temp1 <- PBMC_aggre
+temp1@meta.data$clus_sym_firstcharacter <- substr(temp1@meta.data$cluster, start = 1, stop = 1)
+Idents(temp1) <- "clus_sym_firstcharacter" 
+temp1 <- subset(temp1, idents = "b")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); #temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Jun", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Cd69", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Itgal", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Eif2ak4", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+
+temp1 <- PBMC_aggre
+temp1@meta.data$clus_sym_firstcharacter <- substr(temp1@meta.data$cluster, start = 1, stop = 1)
+Idents(temp1) <- "clus_sym_firstcharacter" 
+temp1 <- subset(temp1, idents = greeks('tau'))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); #temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+VlnPlot(temp3, features = "Jun", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Rgs1", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Cd69", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = mean, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),5, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); #temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Ddx58", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),12, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); #temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Itgal", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b5") #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); #temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naïve")
+temp3 <- subset(temp3, subset = vax != "YF bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+VlnPlot(temp3, features = "Ctbp1", pt.size = 0, cols = rep("grey",3)) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+```
+Generate a combined figure for PBMC.
+```{r}
+plist <- list()
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),12, sep = ""))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+plist[[1]] <- VlnPlot(temp3, features = "Itgal", pt.size = 0, cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+# Cd69
+temp1 <- PBMC_aggre
+temp1@meta.data$clus_sym_firstcharacter <- substr(temp1@meta.data$cluster, start = 1, stop = 1)
+Idents(temp1) <- "clus_sym_firstcharacter" 
+temp1 <- subset(temp1, idents = "b")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+plist[[2]] <- VlnPlot(temp3, features = "Cd69", pt.size = 0, cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+temp1 <- PBMC_aggre
+temp1@meta.data$clus_sym_firstcharacter <- substr(temp1@meta.data$cluster, start = 1, stop = 1)
+Idents(temp1) <- "clus_sym_firstcharacter" 
+temp1 <- subset(temp1, idents = greeks('tau'))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+plist[[3]] <- VlnPlot(temp3, features = "Cd69", pt.size = 0, cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),5, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+plist[[4]] <- VlnPlot(temp3, features = "Ddx58", pt.size = 0, cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b8")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+plist[[5]] <- VlnPlot(temp3, features = "Tpd52", pt.size = 0, cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),7, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+plist[[6]] <- VlnPlot(temp3, features = "Stat1", pt.size = 0,cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b6")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+plist[[7]] <- VlnPlot(temp3, features = "Casp1", pt.size = 0,cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('nu'),1, sep = ""))
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+plist[[8]] <- VlnPlot(temp3, features = "Il1r2", pt.size = 0, cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "b6")
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+plist[[9]] <- VlnPlot(temp3, features = "Bank1", pt.size = 0, cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = paste(greeks('tau'),2, sep = "")) #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); temp2 <- subset(temp2, subset = time != "D1")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+#VlnPlot(temp3, features = "Ifi30", pt.size = 0) + stat_summary(fun.y = median, geom='point', size = 10, colour = "black", shape = 95)
+plist[[10]] <- VlnPlot(temp3, features = "Bend4", pt.size = 0, cols = c("#9c9c9c","#143fff")) + stat_compare_means() + NoLegend() + 
+  theme(plot.title = element_text(size=0)) +
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+fig1 <- ggarrange(plotlist = plist,ncol=5,nrow=2)
+```
+
+Next, Costa Naves et al and Marquadt et al. Both are on NK cells.
+```{r}
+Idents(PBMC_aggre) <- "cluster" 
+temp1 <- subset(PBMC_aggre, idents = "n1") #7, 11, 12
+Idents(temp1) <- "time" 
+temp2 <- subset(temp1, subset = time != "D30"); temp2 <- subset(temp2, subset = time != "D7")
+temp2 <- subset(temp2, subset = time != "D5"); 
+#temp2 <- subset(temp2, subset = time != "D3")
+temp3 <- subset(temp2, subset = vax != "vipex")
+temp3 <- subset(temp3, subset = vax != "naive")
+temp3 <- subset(temp3, subset = vax != "bad")
+temp3@meta.data$time_vax <- paste(temp3@meta.data$time, temp3@meta.data$vax, sep = "_")
+
+Idents(temp3) <- "time_vax"
+DefaultAssay(temp3) <- "RNA"
+
+VlnPlot(temp3, features = "Cd69", pt.size = 0, cols = c("#9c9c9c","#143fff","#143fff")) + stat_compare_means()
+VlnPlot(temp3, features = "Fcgr3", pt.size = 0, cols = c("#9c9c9c","#143fff","#143fff")) + stat_compare_means()
+```
+Next, Hou et al.
+This will require the single cell level data (not pseudo-bulked).
+Download the data from Zenodo (see the data availability section of the manuscript).
+```{r}
+#setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_04")
+#PBMC_data <- LoadH5Seurat("PBMC_data.h5seurat")
+PBMC_data <- NormalizeData(PBMC_data, assay = "RNA")
+features <- c("Tnfaip3", "Nfkbia", "Irs2", "Cxcr4", "Bcl3", "Mmp9", "Rel", "Fos", "Hif1a", "Socs3", "Nr4a1", "Ripk2", "Traf6", "Bcl6", "Jak2", "Meis1", "Ccr5", "Pcna", "Uso1", "Tcf4", "Hspa1a", "Nmi", "Ccr1", "Dab2")
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D0")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "Vipex ")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 6)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D1")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 6)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D3")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 6)
+
+Idents(PBMC_data) <- "timepoint" 
+temp1 <- subset(PBMC_data, idents = "D5")
+Idents(temp1) <- "vax" 
+temp1 <- subset(temp1, idents = "YF good")
+DefaultAssay(temp1) <- "RNA"
+FeaturePlot(temp1, features = features, ncol = 6)
+
+# Dot plot now
+features <- c("Tnfaip3", "Nfkbia", "Irs2", "Cxcr4", "Bcl3", "Mmp9", "Rel", "Fos", "Hif1a", "Socs3", "Nr4a1", "Ripk2", "Bcl6", "Ccr5", "Hspa1a", "Nmi", "Ccr1")
+
+temp1 <- PBMC_data
+temp1$cluster_symbol1 <- temp1$cluster_symbol
+temp1@meta.data$clus_sym_firstcharacter <- substr(temp1@meta.data$cluster_symbol1, start = 1, stop = 1)
+Idents(temp1) <- "timepoint" 
+temp1 <- subset(temp1, subset = timepoint != "D30"); temp1 <- subset(temp1, subset = timepoint != "D7")
+#temp2 <- subset(temp2, subset = time != "D5"); #temp2 <- subset(temp2, subset = time != "D1")
+temp1 <- subset(temp1, subset = vax != "vipex")
+temp1 <- subset(temp1, subset = vax != "naïve")
+temp1 <- subset(temp1, subset = vax != "YF bad")
+Idents(temp1) <- "clus_sym_firstcharacter"
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != "i")
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != "e")
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != greeks("phi"))
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != greeks("beta"))
+
+char_sym <- temp1@meta.data$clus_sym_firstcharacter
+for (k in 1:length(char_sym)) {
+  if (char_sym[k] == "m") {
+    char_sym[k] <- "M"
+  }
+  if (char_sym[k] == "d") {
+    char_sym[k] <- "M"
+  }
+  if (char_sym[k] == greeks("mu")) {
+    char_sym[k] <- "M"
+  }
+  if (char_sym[k] == greeks("nu")) {
+    char_sym[k] <- "M"
+  }
+}
+
+temp1@meta.data$char_sym <- char_sym
+temp1@meta.data$char_sym_time <- paste(temp1@meta.data$timepoint, temp1@meta.data$char_sym, sep = "_")
+
+library(RColorBrewer)
+DefaultAssay(temp1) <- "RNA"
+DotPlot(temp1, features=features, group.by="char_sym_time", cols = "RdBu") 
+```
+Mantel et al.
+```{r}
+temp1 <- PBMC_data
+temp1@meta.data$clus_sym_firstcharacter <- substr(temp1@meta.data$cluster_symbol1, start = 1, stop = 1)
+Idents(temp1) <- "timepoint" 
+temp1 <- subset(temp1, subset = timepoint != "D30"); temp1 <- subset(temp1, subset = timepoint != "D7")
+#temp2 <- subset(temp2, subset = time != "D5"); #temp2 <- subset(temp2, subset = time != "D1")
+temp1 <- subset(temp1, subset = vax != "vipex")
+temp1 <- subset(temp1, subset = vax != "naïve")
+temp1 <- subset(temp1, subset = vax != "YF bad")
+Idents(temp1) <- "clus_sym_firstcharacter"
+#temp1 <- subset(temp1, subset = clus_sym_firstcharacter != greeks("tau"))
+#temp1 <- subset(temp1, subset = clus_sym_firstcharacter != "b")
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != "i")
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != "m")
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != "n")
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != greeks("phi"))
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != greeks("beta"))
+temp1 <- subset(temp1, subset = clus_sym_firstcharacter != greeks("mu"))
+
+temp1@meta.data$char_sym_time <- paste(temp1@meta.data$timepoint, temp1@meta.data$clus_sym_firstcharacter, sep = "_")
+
+features <- c("Ccrl2","Prtn3","Ddx58","Ifi27",
+"Ifit2","Epb42","Klf1","Spta1","Tmod1")
+
+library(RColorBrewer)
+DefaultAssay(temp1) <- "RNA"
+DotPlot(temp1, features=features, group.by="char_sym_time", dot.scale = 15, cols = "RdBu") 
+```
+
+```{r}
+setwd("C:/Users/budha/Documents/R/YF_complete/YF_report_10")
+saveRDS(spleen_aggre, file = "spleen_aggre.rds", compress = "xz")
+ndLN1 <- readRDS("C:/Users/budha/Documents/R/YF_complete/YF_report_10/PBMC_aggre.rds")
+```
+
+
